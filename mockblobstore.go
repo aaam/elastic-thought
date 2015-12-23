@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-
-	"github.com/couchbaselabs/cbfs/client"
 )
 
 var (
@@ -37,16 +35,6 @@ func NewMockBlobStore() *MockBlobStore {
 	return DefaultMockBlobStore
 }
 
-// Queue up a response to a Get request
-func (m *MockBlobStore) QueueGetResponse(pathRegex string, response io.Reader) {
-	queue, ok := m.GetResponses[pathRegex]
-	if !ok {
-		queue = ResponseQueue{}
-	}
-	queue = append(queue, response)
-	m.GetResponses[pathRegex] = queue
-}
-
 func (m *MockBlobStore) Get(path string) (io.ReadCloser, error) {
 	matchingKey, queue := m.responseQueueForPath(path)
 	if len(queue) == 0 {
@@ -56,6 +44,26 @@ func (m *MockBlobStore) Get(path string) (io.ReadCloser, error) {
 	m.GetResponses[matchingKey] = queue[1:]
 
 	return nopCloser{firstItem}, nil
+}
+
+func (m *MockBlobStore) Put(srcname, dest string, r io.Reader, opts BlobPutOptions) error {
+	return nil
+}
+
+func (m *MockBlobStore) Rm(fn string) error {
+	return nil
+}
+
+func (m *MockBlobStore) OpenFile(path string) (BlobHandle, error) {
+	return nil, nil
+}
+
+type nopCloser struct {
+	io.Reader
+}
+
+func (nopCloser) Close() error {
+	return nil
 }
 
 func (m *MockBlobStore) responseQueueForPath(path string) (string, ResponseQueue) {
@@ -71,22 +79,12 @@ func (m *MockBlobStore) responseQueueForPath(path string) (string, ResponseQueue
 	return "", nil
 }
 
-func (m *MockBlobStore) Put(srcname, dest string, r io.Reader, opts cbfsclient.PutOptions) error {
-	return nil
-}
-
-func (m *MockBlobStore) Rm(fn string) error {
-	return nil
-}
-
-func (m *MockBlobStore) OpenFile(path string) (*cbfsclient.FileHandle, error) {
-	return nil, nil
-}
-
-type nopCloser struct {
-	io.Reader
-}
-
-func (nopCloser) Close() error {
-	return nil
+// Queue up a response to a Get request
+func (m *MockBlobStore) QueueGetResponse(pathRegex string, response io.Reader) {
+	queue, ok := m.GetResponses[pathRegex]
+	if !ok {
+		queue = ResponseQueue{}
+	}
+	queue = append(queue, response)
+	m.GetResponses[pathRegex] = queue
 }
